@@ -2,6 +2,7 @@
 //
 
 #include <iostream>
+#include "CImg.h" // GET THIS TO WORK
 
 int main()
 {
