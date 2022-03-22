@@ -1,0 +1,3 @@
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(467,5): warning MSB8028: The intermediate directory (Debug\) contains files shared from another project (image_manipulation_test.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  uol_parallel_programming.cpp
+  uol_parallel_programming.vcxproj -> C:\Users\apric\Documents\uni\Year3\uol_parallel_programming\Debug\uol_parallel_programming.exe

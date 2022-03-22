@@ -2,11 +2,32 @@
 //
 
 #include <iostream>
-#include "CImg.h" // GET THIS TO WORK
+#include "Utils.h" // import OpenCL tools
+#include "CImg.h" // import CImg tools
+
+using namespace cimg_library;
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    //std::cout << "Hello World!\n";
+
+    int platform_id = 0; // specify OpenCL platform ID
+    int device_id = 0; // specify OpenCL device ID
+    std::string filename = "test.pgm"; // name of test image
+
+    CImg<unsigned char> image_input(filename.c_str()); // initialise image
+    CImgDisplay disp_input = CImgDisplay(image_input, "input"); // display image with title "input"
+
+    cl::Context context = GetContext(platform_id, device_id);
+
+    // && !disp_output.is_closed()
+    // && !disp_output.is_keyESC()
+    // disp_output.wait(1);
+
+    while (!disp_input.is_closed() && !disp_input.is_keyESC() ) { // if user has not closed image
+        disp_input.wait(1); // keep the image displayed
+    }
+
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
