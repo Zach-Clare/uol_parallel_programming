@@ -37,10 +37,6 @@ int main(int argc, char **argv) {
 		disp_input.wait(1); // keep the image displayed
 	}
 
-
-	
-
-
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//Part 1 - handle command line options such as device selection, verbosity, etc.
 	//int platform_id = 0;
@@ -143,14 +139,46 @@ int main(int argc, char **argv) {
 		std::cout << "B = " << histogram << std::endl;
 
 		/////// Cumulative histogram
+		std::vector<int> cumulative_histogram(256);
+		size_t cumulative_histogram_size = cumulative_histogram.size() * sizeof(int);
 
 		for (int i = 0; i < histogram.size(); i++) {
-			if (i != 0) {
-				histogram[i] += histogram[i - 1];
+			if (i == 0) {
+				cumulative_histogram[i] = histogram[i];
+			} else {
+				cumulative_histogram[i] = cumulative_histogram[i-1] + histogram[i];
 			}
 		}
 
-		std::cout << "B = " << histogram << std::endl;
+		std::cout << "B = " << cumulative_histogram << std::endl;
+
+		/////// Normalise histogram
+
+		// Get the max value, which will be the final value in the array.
+		float max = cumulative_histogram.back();
+
+		std::vector<float> norm_histogram(256); // bin size
+		size_t norm_histogram_size = norm_histogram.size() * sizeof(float);
+
+		// divide all elements by max result and save in new histogram
+		cl::Buffer buffer_cumulative_histogram(context, CL_MEM_READ_WRITE, cumulative_histogram_size);
+		cl::Buffer buffer_norm_histogram(context, CL_MEM_READ_WRITE, norm_histogram_size);
+
+		queue.enqueueWriteBuffer(buffer_cumulative_histogram, CL_TRUE, 0, cumulative_histogram_size, &cumulative_histogram[0]);
+		queue.enqueueFillBuffer(buffer_norm_histogram, 0, 0, norm_histogram_size);
+
+		kernel = cl::Kernel(program, "divide_array");
+		kernel.setArg(0, buffer_cumulative_histogram);
+		kernel.setArg(1, buffer_norm_histogram);
+		kernel.setArg(2, max);
+
+		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(cumulative_histogram_size), cl::NullRange);
+		//
+		//vector<unsigned char> output_buffer(histogram.size());
+		//4.3 Copy the result from device to host
+		queue.enqueueReadBuffer(buffer_norm_histogram, CL_TRUE, 0, norm_histogram_size, &norm_histogram.data()[0]);
+
+		std::cout << "C = " << norm_histogram << std::endl;
 
 	}
 	catch (const cl::Error& err) {

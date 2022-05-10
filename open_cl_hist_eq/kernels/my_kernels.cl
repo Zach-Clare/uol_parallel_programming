@@ -18,6 +18,15 @@ kernel void hist(global const uchar* A, global int* H, int nr_bins, int min_valu
 	atomic_inc(&H[bin_index]);//serial operation, not very efficient!
 }
 
+kernel void divide_array(global const int* H, global float* N, float B) {
+	int id = get_global_id(0);
+	float hist_value = (float)H[id];
+
+	N[id] = hist_value / B; // divide by B
+
+	printf(id);
+}
+
 //a simple OpenCL kernel which copies all pixels from A to B
 kernel void identity(global const uchar* A, global uchar* B) {
 	int id = get_global_id(0);

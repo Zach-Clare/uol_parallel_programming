@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29613.14
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Tutorial 2", "Tutorial 2\Tutorial 2.vcxproj", "{9167FEE5-0E64-4275-B2B2-A3F87F3A5C8F}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "open_cl_hist_eq", "open_cl_hist_eq\open_cl_hist_eq.vcxproj", "{9167FEE5-0E64-4275-B2B2-A3F87F3A5C8F}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Tutorial 3", "Tutorial 3\Tutorial 3.vcxproj", "{8CB4B79A-8170-44DE-88DC-C73EACB44CB2}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "open_cl_hist_eq1", "open_cl_hist_eq1\open_cl_hist_eq1.vcxproj", "{8CB4B79A-8170-44DE-88DC-C73EACB44CB2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,14 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Tutorial 1.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <Filter Include="kernels">
-      <UniqueIdentifier>{11e52fc2-3f25-4b94-920c-911c1673bf6c}</UniqueIdentifier>
+      <UniqueIdentifier>{bc7a8fec-44e6-4521-a22b-e4595d5b0ed1}</UniqueIdentifier>
     </Filter>
     <Filter Include="include">
-      <UniqueIdentifier>{5586229f-c9c4-4574-89bd-30ba09061ac6}</UniqueIdentifier>
+      <UniqueIdentifier>{84aac619-8794-4eec-81d5-212689c31225}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -20,5 +17,8 @@
     <ClInclude Include="..\include\Utils.h">
       <Filter>include</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="open_cl_hist_eq1.cpp" />
   </ItemGroup>
 </Project>
