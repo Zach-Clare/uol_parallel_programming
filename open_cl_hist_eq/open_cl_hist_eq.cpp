@@ -136,19 +136,37 @@ int main(int argc, char **argv) {
 			cout << dev_image_output[i];
 		}*/
 
-		std::cout << "B = " << histogram << std::endl;
+		std::cout << "A = " << histogram << std::endl;
 
 		/////// Cumulative histogram
 		std::vector<int> cumulative_histogram(256);
 		size_t cumulative_histogram_size = cumulative_histogram.size() * sizeof(int);
 
-		for (int i = 0; i < histogram.size(); i++) {
-			if (i == 0) {
-				cumulative_histogram[i] = histogram[i];
-			} else {
-				cumulative_histogram[i] = cumulative_histogram[i-1] + histogram[i];
-			}
-		}
+		//for (int i = 0; i < histogram.size(); i++) {
+		//	if (i == 0) {
+		//		cumulative_histogram[i] = histogram[i];
+		//	} else {
+		//		cumulative_histogram[i] = cumulative_histogram[i-1] + histogram[i];
+		//	}
+		//}
+
+		cl::Buffer buffer_histogram_input(CL_MEM_READ_ONLY, histogram_size);
+		cl::Buffer buffer_cumulative_histogram(CL_MEM_READ_WRITE, cumulative_histogram_size);
+
+		queue.enqueueWriteBuffer(buffer_histogram_input, CL_TRUE, 0, histogram_size, &histogram.data()[0]);
+		queue.enqueueFillBuffer(buffer_cumulative_histogram, 0, 0, cumulative_histogram_size);
+
+		//4.2 Setup and execute the kernel (i.e. device code)
+		cl::Kernel kernel_cumulative = cl::Kernel(program, "hist_cumulative");
+		kernel_cumulative.setArg(0, buffer_histogram_input);
+		kernel_cumulative.setArg(1, buffer_cumulative_histogram);
+		kernel_cumulative.setArg(2, cl::Local(histogram_size));
+		kernel_cumulative.setArg(3, cl::Local(cumulative_histogram_size));
+
+		queue.enqueueNDRangeKernel(kernel_cumulative, cl::NullRange, cl::NDRange(cumulative_histogram_size), cl::NullRange);
+
+		queue.enqueueReadBuffer(buffer_cumulative_histogram, CL_TRUE, 0, cumulative_histogram_size, &cumulative_histogram[0]);
+
 
 		std::cout << "B = " << cumulative_histogram << std::endl;
 
@@ -161,7 +179,7 @@ int main(int argc, char **argv) {
 		size_t norm_histogram_size = norm_histogram.size() * sizeof(float);
 
 		// divide all elements by max result and save in new histogram
-		cl::Buffer buffer_cumulative_histogram(context, CL_MEM_READ_WRITE, cumulative_histogram_size);
+		//cl::Buffer buffer_cumulative_histogram(context, CL_MEM_READ_WRITE, cumulative_histogram_size); // no need for this, using previous buffer
 		cl::Buffer buffer_norm_histogram(context, CL_MEM_READ_WRITE, norm_histogram_size);
 
 		queue.enqueueWriteBuffer(buffer_cumulative_histogram, CL_TRUE, 0, cumulative_histogram_size, &cumulative_histogram[0]);
