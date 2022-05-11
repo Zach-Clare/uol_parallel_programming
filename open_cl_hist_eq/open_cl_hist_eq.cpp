@@ -122,14 +122,7 @@ int main(int argc, char **argv) {
 		//4.3 Copy the result from device to host
 		queue.enqueueReadBuffer(buffer_histogram, CL_TRUE, 0, histogram_size, &histogram[0]);
 
-		//CImg<unsigned char> output_image(output_buffer.data(), image_input.width(), image_input.height(), image_input.depth(), image_input.spectrum());
-		//CImgDisplay disp_output(output_image,"output");
-
- 		/*while (!disp_input.is_closed() && !disp_output.is_closed()
-			&& !disp_input.is_keyESC() && !disp_output.is_keyESC()) {
-		    disp_input.wait(1);
-		    disp_output.wait(1);
-	    }*/		
+		
 
 		//cout << histogram;
 		/*for (int i = 0; i != histogram_size; i++) {
@@ -197,6 +190,56 @@ int main(int argc, char **argv) {
 		queue.enqueueReadBuffer(buffer_norm_histogram, CL_TRUE, 0, norm_histogram_size, &norm_histogram.data()[0]);
 
 		std::cout << "C = " << norm_histogram << std::endl;
+
+		////// Create look up table
+
+		std::vector<int> lut(256); // look up table
+		size_t lut_size = lut.size() * sizeof(int);
+
+		cl::Buffer buffer_lut(context, CL_MEM_READ_WRITE, lut_size);
+
+		queue.enqueueWriteBuffer(buffer_norm_histogram, CL_TRUE, 0, norm_histogram_size, &norm_histogram[0]);
+		queue.enqueueFillBuffer(buffer_lut, 0, 0, lut_size);
+
+		kernel = cl::Kernel(program, "lut");
+		kernel.setArg(0, buffer_norm_histogram);
+		kernel.setArg(1, buffer_lut);
+
+		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(lut_size), cl::NullRange);
+
+		queue.enqueueReadBuffer(buffer_lut, CL_TRUE, 0, lut_size, &lut.data()[0]);
+
+		std::cout << "D = " << lut << std::endl;
+
+		////// Create enhanced image from LUT
+		
+		std::vector<unsigned char> image_output(image_input.size());
+		size_t image_output_size = image_output.size();
+		//CImgDisplay disp_input(image_input, "input");
+
+		cl::Buffer buffer_output(context, CL_MEM_READ_WRITE, image_output_size);
+
+		queue.enqueueWriteBuffer(buffer_dev_image_input, CL_TRUE, 0, image_input.size(), &image_input.data()[0]);
+		queue.enqueueWriteBuffer(buffer_lut, CL_TRUE, 0, lut_size, &lut.data()[0]);
+
+		kernel = cl::Kernel(program, "back_prop");
+		kernel.setArg(0, buffer_dev_image_input);
+		kernel.setArg(1, buffer_output);
+		kernel.setArg(2, buffer_lut);
+
+		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(image_input.size()), cl::NullRange);
+
+		queue.enqueueReadBuffer(buffer_output, CL_TRUE, 0, image_output_size, &image_output.data()[0]);
+
+
+		CImg<unsigned char> output_image(image_output.data(), image_input.width(), image_input.height(), image_input.depth(), image_input.spectrum());
+		CImgDisplay disp_output(output_image,"output");
+
+		while (!disp_input.is_closed() && !disp_output.is_closed()
+			&& !disp_input.is_keyESC() && !disp_output.is_keyESC()) {
+			disp_input.wait(1);
+			disp_output.wait(1);
+		}
 
 	}
 	catch (const cl::Error& err) {

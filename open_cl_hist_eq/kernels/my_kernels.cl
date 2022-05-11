@@ -18,8 +18,7 @@ kernel void hist(global const uchar* A, global int* H, int nr_bins, int min_valu
 	atomic_inc(&H[bin_index]);//serial operation, not very efficient!
 }
 
-//a double-buffered version of the Hillis-Steele inclusive scan
-//requires two additional input arguments which correspond to two local buffers
+// Scan Add algorithm - a double-buffered version of the Hillis-Steele inclusive scan
 kernel void hist_cumulative(__global const int* A, global int* B, local int* scratch_1, local int* scratch_2) {
 	int id = get_global_id(0);
 	int lid = get_local_id(0);
@@ -54,8 +53,20 @@ kernel void divide_array(global const int* H, global float* N, float B) {
 	float hist_value = (float)H[id];
 
 	N[id] = hist_value / B; // divide by B
+}
 
-	printf(id);
+kernel void lut(global const float* N, global int* L) {
+	int id = get_global_id(0);
+	float norm = N[id]; // get normalised value
+
+	L[id] = round(norm * 255); // multiply by (desired range - 1 = 255)
+}
+
+kernel void back_prop(global const uchar* I, global uchar* O, global int* L) {
+	int id = get_global_id(0);
+	int pix = I[id]; // get old pixel value
+
+	O[id] = L[pix];
 }
 
 //a simple OpenCL kernel which copies all pixels from A to B
