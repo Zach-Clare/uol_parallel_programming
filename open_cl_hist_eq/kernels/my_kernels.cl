@@ -35,18 +35,6 @@ kernel void hist_cumulative(__global const int* A, global int* B, local int* scr
 		scratch_1 = scratch_3;
 	}
 
-	if (id == 39) {
-		printf("%d ", scratch_1[lid]);
-		printf("%d ", scratch_2[lid]);
-		printf("%d ", lid);
-	}
-
-	if (id == 40) {
-		printf("%d ", scratch_1[lid]);
-		printf("%d ", scratch_2[lid]);
-		printf("%d ", lid);
-	}
-
 	// copy the cache to output array
 	B[id] = scratch_1[lid];
 }

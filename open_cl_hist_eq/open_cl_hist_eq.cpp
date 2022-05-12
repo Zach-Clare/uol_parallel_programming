@@ -9,6 +9,7 @@ Functionality:
 	- Timings are also collated into overall memory transfer time, overall kernel operation time, and total program execution time.
 	- The bin size is variable (see bin_size variable).
 	- Colour images are supported (tested with test_colour.ppm).
+	- 16 bit depth images (see bit_depth_16).
 
 Original developments:
 	- normalise_array() kernel
@@ -66,9 +67,16 @@ int main(int argc, char **argv) {
 
 	// detect any potential exceptions
 	try {
+		bool bit_depth_16 = false; // modifiable
+
+		int max_intensity = 256;
 		CImg<unsigned char> image_input(image_filename.c_str()); // init image
-		CImgDisplay disp_input(image_input,"Raw image"); // display raw image with title
-		int bit_depth = 256;
+
+		if (bit_depth_16 == true) {
+			CImg<unsigned short> image_input(image_filename.c_str()); // init image
+		}
+
+		CImgDisplay disp_input(image_input, "Raw image"); // display raw image with title
 
 		// Host operations
 		cl::Context context = GetContext(platform_id, device_id); // select computing devices to be used with kernels
@@ -106,7 +114,7 @@ int main(int argc, char **argv) {
 		kernel.setArg(0, buffer_image_input); // set appropriate arguements (arrays start at 0)
 		kernel.setArg(1, buffer_histogram);
 		kernel.setArg(2, bin_size);
-		kernel.setArg(3, bit_depth);
+		kernel.setArg(3, max_intensity);
 
 		cl::Event event_hist_kernel; // new event for histogram calculation kernel
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(image_input.size()), cl::NullRange, NULL, &event_hist_kernel); // being task (with event)
@@ -194,7 +202,7 @@ int main(int argc, char **argv) {
 		kernel.setArg(1, buffer_output);
 		kernel.setArg(2, buffer_lut);
 		kernel.setArg(3, bin_size);
-		kernel.setArg(4, bit_depth);
+		kernel.setArg(4, max_intensity);
 
 		cl::Event event_enhance_kernel; // event for enhancement kernel
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(image_input.size()), cl::NullRange, NULL, &event_enhance_kernel); // begin enhancement kernel
