@@ -7,19 +7,24 @@ Functionality:
 	- atomic_int() is used to prevent race conditions.
 	- Each memory and kernel operation is timed and displayed.
 	- Timings are also collated into overall memory transfer time, overall kernel operation time, and total program execution time.
+	- The bin size is variable (see bin_size variable).
+	- Colour images are supported (tested with test_colour.ppm).
 
 Original developments:
 	- normalise_array() kernel
 	- lut() kernel
-	- back_prop() kernel
+	- back_proj() kernel
 
 External sources:
 	- None
 
 Optimisation strategies:
 	- The scan add algorithm is used in the hist_cumulative() kernel.
-	- Buffers are re-used where ppossible to reduce memory transfer times.
+	- The hist_cumulative() kernel uses local memory.
+	- Buffers are re-used where possible to reduce memory transfer times.
+	- Blelloch steps are attempted but not implemented as part of main program.
 
+	(word count: 112)
 */
 
 #include <iostream>
@@ -63,6 +68,7 @@ int main(int argc, char **argv) {
 	try {
 		CImg<unsigned char> image_input(image_filename.c_str()); // init image
 		CImgDisplay disp_input(image_input,"Raw image"); // display raw image with title
+		int bit_depth = 256;
 
 		// Host operations
 		cl::Context context = GetContext(platform_id, device_id); // select computing devices to be used with kernels
@@ -86,7 +92,7 @@ int main(int argc, char **argv) {
 
 		/////////// Calculate histogram ////////////////////////////////////////////////////////////////////////////////////////////
 
-		int bin_size = 256;
+		int bin_size = 256; // Variable bin size
 		std::vector<int> histogram(bin_size); // make bin size of histogram equal to amount of intensities in input image
 		size_t histogram_size = histogram.size() * sizeof(int); // get byte length of histogram space
 
@@ -99,6 +105,8 @@ int main(int argc, char **argv) {
 		cl::Kernel kernel = cl::Kernel(program, "hist"); // create hist kernel 
 		kernel.setArg(0, buffer_image_input); // set appropriate arguements (arrays start at 0)
 		kernel.setArg(1, buffer_histogram);
+		kernel.setArg(2, bin_size);
+		kernel.setArg(3, bit_depth);
 
 		cl::Event event_hist_kernel; // new event for histogram calculation kernel
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(image_input.size()), cl::NullRange, NULL, &event_hist_kernel); // being task (with event)
@@ -114,16 +122,16 @@ int main(int argc, char **argv) {
 		std::vector<int> cumulative_histogram(bin_size); // needs identical bin size
 		size_t cumulative_histogram_size = cumulative_histogram.size() * sizeof(int); // calc total size in bytes
 
-		cl::Buffer buffer_cumulative_histogram(CL_MEM_READ_WRITE, cumulative_histogram_size); // create output buffer for cumulative histogram
+		cl::Buffer buffer_cumulative_histogram(context, CL_MEM_READ_WRITE, cumulative_histogram_size); // create output buffer for cumulative histogram
 
-		cl::Kernel kernel_cumulative = cl::Kernel(program, "hist_cumulative"); // create handle for hist_cumulative kernel
-		kernel_cumulative.setArg(0, buffer_histogram); // re-use previously filled buffer
-		kernel_cumulative.setArg(1, buffer_cumulative_histogram); // set output buffer
-		kernel_cumulative.setArg(2, cl::Local(histogram_size)); // size for scratch 1
-		kernel_cumulative.setArg(3, cl::Local(cumulative_histogram_size)); // size for scratch 2
+		kernel = cl::Kernel(program, "hist_cumulative"); // create handle for hist_cumulative kernel
+		kernel.setArg(0, buffer_histogram); // re-use previously filled buffer
+		kernel.setArg(1, buffer_cumulative_histogram); // set output buffer
+		kernel.setArg(2, cl::Local(histogram_size)); // size for scratch 1
+		kernel.setArg(3, cl::Local(histogram_size)); // size for scratch 2
 
 		cl::Event event_cumulative_kernel; // event for cumulative kernel
-		queue.enqueueNDRangeKernel(kernel_cumulative, cl::NullRange, cl::NDRange(cumulative_histogram_size), cl::NullRange, NULL, &event_cumulative_kernel); // begin cumulative histogram task
+		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(cumulative_histogram.size()), cl::NullRange, NULL, &event_cumulative_kernel); // begin cumulative histogram task
 
 		cl::Event event_cumulative_read; // event for reading cumulative histogram
 		queue.enqueueReadBuffer(buffer_cumulative_histogram, CL_TRUE, 0, cumulative_histogram_size, &cumulative_histogram[0], NULL, &event_cumulative_read); // read cumulative histogram
@@ -146,10 +154,10 @@ int main(int argc, char **argv) {
 		kernel.setArg(2, max);
 
 		cl::Event event_norm_kernel; // new event for normalisation kernel
-		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(cumulative_histogram_size), cl::NullRange, NULL, &event_norm_kernel); // begin normalisation task
+		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(norm_histogram.size()), cl::NullRange, NULL, &event_norm_kernel); // begin normalisation task
 		
 		cl::Event event_norm_read; // event for reading normalisation buffer
-		queue.enqueueReadBuffer(buffer_norm_histogram, CL_TRUE, 0, norm_histogram_size, &norm_histogram.data()[0], NULL, &event_norm_read); // read normalisation buffer
+		queue.enqueueReadBuffer(buffer_norm_histogram, CL_TRUE, 0, norm_histogram_size, &norm_histogram[0], NULL, &event_norm_read); // read normalisation buffer
 
 		std::cout << "Normalised histogram = " << norm_histogram << std::endl << std::endl; // display for debug purposes
 
@@ -181,10 +189,12 @@ int main(int argc, char **argv) {
 
 		cl::Buffer buffer_output(context, CL_MEM_READ_WRITE, image_output_size); // new buffer for enhanced image output
 
-		kernel = cl::Kernel(program, "back_prop"); // target back_prop kernel
+		kernel = cl::Kernel(program, "back_proj"); // target back_proj kernel
 		kernel.setArg(0, buffer_image_input); // set args
 		kernel.setArg(1, buffer_output);
 		kernel.setArg(2, buffer_lut);
+		kernel.setArg(3, bin_size);
+		kernel.setArg(4, bit_depth);
 
 		cl::Event event_enhance_kernel; // event for enhancement kernel
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(image_input.size()), cl::NullRange, NULL, &event_enhance_kernel); // begin enhancement kernel
